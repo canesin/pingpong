@@ -1,0 +1,92 @@
+{
+    "BTC_USDC": {
+        "sizeupperlimit": 0.015,
+        "sizelowerlimit": 0.007,
+        "mindelay": 5,
+        "maxdelay": 15
+    },
+    "ETH_BTC": {
+        "sizeupperlimit": 0.2,
+        "sizelowerlimit": 0.07,
+        "mindelay": 5,
+        "maxdelay": 20
+    },
+    "ETH_USDC": {
+        "sizeupperlimit": 0.2,
+        "sizelowerlimit": 0.07,
+        "mindelay": 5,
+        "maxdelay": 20
+    },
+    "NEO_ETH": {
+        "sizeupperlimit": 5,
+        "sizelowerlimit": 1,
+        "mindelay": 10,
+        "maxdelay": 30
+    },
+    "NEO_USDC": {
+        "sizeupperlimit": 5,
+        "sizelowerlimit": 1,
+        "mindelay": 10,
+        "maxdelay": 30
+    },
+    "USDT_USDC": {
+        "sizeupperlimit": 150,
+        "sizelowerlimit": 10,
+        "mindelay": 1,
+        "maxdelay": 5
+    },
+    "LINK_USDC": {
+        "sizeupperlimit": 12,
+        "sizelowerlimit": 3,
+        "mindelay": 10,
+        "maxdelay": 30
+    },
+    "LINK_ETH": {
+        "sizeupperlimit": 12,
+        "sizelowerlimit": 3,
+        "mindelay": 10,
+        "maxdelay": 30
+    },
+    "QNT_USDC": {
+        "sizeupperlimit": 10,
+        "sizelowerlimit": 2,
+        "mindelay": 10,
+        "maxdelay": 30
+    },
+    "QNT_ETH": {
+        "sizeupperlimit": 10,
+        "sizelowerlimit": 2,
+        "mindelay": 10,
+        "maxdelay": 30
+    },
+    "ZRX_USDC": {
+        "sizeupperlimit": 110,
+        "sizelowerlimit": 30,
+        "mindelay": 10,
+        "maxdelay": 30
+    },
+    "ZRX_ETH": {
+        "sizeupperlimit": 110,
+        "sizelowerlimit": 30,
+        "mindelay": 10,
+        "maxdelay": 30
+    },
+    "BAT_USDC": {
+        "sizeupperlimit": 500,
+        "sizelowerlimit": 60,
+        "mindelay": 10,
+        "maxdelay": 30
+    },
+    "BAT_ETH": {
+        "sizeupperlimit": 500,
+        "sizelowerlimit": 60,
+        "mindelay": 10,
+        "maxdelay": 30
+    },
+    "RLC_ETH": {
+        "sizeupperlimit": 100,
+        "sizelowerlimit": 20,
+        "mindelay": 10,
+        "maxdelay": 30
+    }
+}
