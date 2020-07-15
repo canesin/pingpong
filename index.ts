@@ -211,7 +211,7 @@ function configureConnection(connection: NashSocketEvents, orderbook: BotOrderBo
     connection.onUpdatedOrderbook({marketName: MARKET}, {
         onResult: order => {
             try {
-                currentOB = updateBotOrderBook(orderbook, order);
+                currentOB = updateBotOrderBook(orderbook, order as unknown as OrderBook);
             } catch (error) {
                 getInitialOrderBook(player).then(res => currentOB = res)
             }
@@ -225,6 +225,8 @@ function configureConnection(connection: NashSocketEvents, orderbook: BotOrderBo
     })
 
 }
+
+let currentOB: BotOrderBook
 
 const run = async () => {
     // Login and get current balances
@@ -247,7 +249,6 @@ const run = async () => {
 
     // Initially set to disconnected to force it to connect on first iteration
     let isDisconnected = true
-    let currentOB: BotOrderBook
     let buyprice: string
 
     // Play ping-pong! =)

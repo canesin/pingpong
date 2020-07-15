@@ -148,10 +148,10 @@ function configureConnection(connection, orderbook, mkt) {
     connection.onUpdatedOrderbook({ marketName: MARKET }, {
         onResult: order => {
             try {
-                orderbook = updateBotOrderBook(orderbook, order.data.updatedOrderBook);
+                currentOB = updateBotOrderBook(orderbook, order);
             }
             catch (error) {
-                getInitialOrderBook(player).then(res => orderbook = res);
+                getInitialOrderBook(player).then(res => currentOB = res);
             }
         }
     });
@@ -162,6 +162,7 @@ function configureConnection(connection, orderbook, mkt) {
         }
     });
 }
+let currentOB;
 const run = async () => {
     // Login and get current balances
     await player.login(require(APIKEY));
@@ -180,7 +181,6 @@ const run = async () => {
     await cancelAllBuys();
     // Initially set to disconnected to force it to connect on first iteration
     let isDisconnected = true;
-    let currentOB;
     let buyprice;
     // Play ping-pong! =)
     for (let iteration = 0; iteration < +Infinity; iteration++) {
