@@ -211,9 +211,9 @@ function configureConnection(connection: NashSocketEvents, orderbook: BotOrderBo
     connection.onUpdatedOrderbook({marketName: MARKET}, {
         onResult: order => {
             try {
-                orderbook = updateBotOrderBook(orderbook, order.data.updatedOrderBook)
+                currentOB = updateBotOrderBook(orderbook, order);
             } catch (error) {
-                getInitialOrderBook(player).then(res => orderbook = res)
+                getInitialOrderBook(player).then(res => currentOB = res)
             }
         }
     })
