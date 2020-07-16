@@ -266,10 +266,10 @@ const run = async () => {
             console.log('[INFO]: market seens to not be buying, giving more time to match sells')
             let timeToWait = 15_000 * (Math.pow(2, edgeCounter))
             console.log(`[INFO]: will wait for ${(timeToWait/60_000).toFixed()}min`)
-            await cancelAllBuys()
-            buyingCounter = 0
-            console.log('buyingCounter ' + buyingCounter)
-            console.log('edgeCounter ' + edgeCounter)
+            // await cancelAllBuys()
+            // buyingCounter = 0
+            // console.log('buyingCounter ' + buyingCounter)
+            // console.log('edgeCounter ' + edgeCounter)
             await delay(timeToWait)
         }
 
