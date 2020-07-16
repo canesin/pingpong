@@ -25,7 +25,8 @@ const player = new api_client_typescript_1.Client(ENV, {
 });
 // Zero buy-no-sell counter (used to detect if we are on a market dive)
 // we are creating this variable here at top level just so that we can use inside helper functions
-let buyNoSellCounter = 0;
+let edgeCounter = 0;
+let buyingCounter = 0;
 async function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -108,9 +109,15 @@ function edgeTrade(trades, mkt) {
                     player.placeLimitOrder(false, trade.amount, api_client_typescript_1.OrderBuyOrSell.SELL, api_client_typescript_1.OrderCancellationPolicy.GOOD_TIL_CANCELLED, api_client_typescript_1.createCurrencyPrice((parseFloat(sellprice) * 1.0025 + mkt.tick).toFixed(mkt.pricedecimals), mkt.bUnit, mkt.aUnit), MARKET);
                 }
             });
+            ++edgeCounter;
+            console.log('++edgeCounter (placing edge) ' + edgeCounter);
+            --buyingCounter;
+            console.log('--buyingCounter (buy filled) ' + buyingCounter);
         }
         else {
-            --buyNoSellCounter;
+            --edgeCounter;
+            console.log('--edgeCounter (sell edge filled) ' + edgeCounter);
+            console.log('buyingCounter ' + buyingCounter);
         }
     });
 }
@@ -186,13 +193,15 @@ const run = async () => {
     for (let iteration = 0; iteration < +Infinity; iteration++) {
         // Give some time if market is going down so we don't lock all the funds in future sells
         // time to wait is 15 sec * (2 ^ number of sells without buys)
-        if (buyNoSellCounter > 1) {
+        if (edgeCounter >= 1) {
             console.log('[INFO]: market seens to not be buying, giving more time to match sells');
-            let timeToWait = 15000 * (Math.pow(2, buyNoSellCounter));
+            let timeToWait = 15000 * (Math.pow(2, edgeCounter));
             console.log(`[INFO]: will wait for ${(timeToWait / 60000).toFixed()}min`);
             await cancelAllBuys();
+            buyingCounter = 0;
+            console.log('buyingCounter ' + buyingCounter);
+            console.log('edgeCounter ' + edgeCounter);
             await delay(timeToWait);
-            --buyNoSellCounter;
         }
         // Check if we are connected, if not try to reconnect
         // After the big delay from dip detection above because delays can cause disconnections
@@ -213,7 +222,8 @@ const run = async () => {
             currentOB = await getInitialOrderBook(player);
             configureConnection(connection, currentOB, mktsettings);
         }
-        if (buyNoSellCounter < 1) {
+        // If there is no current buying order, and no to much pending sells... we rebuy
+        if (buyingCounter === 0 && edgeCounter <= 2) {
             // Compute a leading price that is consistent with global markets, present here to devs our
             // endpoint with real-time global markets data =)
             let spread = await getassetprice();
@@ -227,7 +237,9 @@ const run = async () => {
             // Increment buy-no-sell counter so we can detect the market taking dives
             // this is a simple strategy to not keep buying as the market goes down
             // one can (maybe should?) get a lot more fancy - but this works 80/20
-            ++buyNoSellCounter;
+            ++buyingCounter;
+            console.log('++buyingCounter ' + buyingCounter);
+            console.log('edgeCounter ' + edgeCounter);
         }
         // Check if is price tip, if it is not cancel current buy
         let bidstip = -Infinity;
@@ -237,7 +249,9 @@ const run = async () => {
         if (isFinite(bidstip) && parseFloat(buyprice) < bidstip) {
             console.log('[WARNING]: Not tip anymore, canceling current buy');
             await cancelAllBuys();
-            --buyNoSellCounter;
+            buyingCounter = 0;
+            console.log('buyingCounter ' + buyingCounter);
+            console.log('edgeCounter ' + edgeCounter);
         }
         // Give some time for market to fill order
         await delay(random(config.mindelay, config.maxdelay) * 1000);

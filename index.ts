@@ -50,8 +50,8 @@ const player = new Client(
 )
 // Zero buy-no-sell counter (used to detect if we are on a market dive)
 // we are creating this variable here at top level just so that we can use inside helper functions
-let buyNoSellCounter = 0
-
+let edgeCounter = 0
+let buyingCounter = 0
 async function delay(ms: number) {
     return new Promise( resolve => setTimeout(resolve, ms) );
 }
@@ -166,8 +166,14 @@ function edgeTrade(trades: Trade[], mkt: MarketSettings): void {
                     )
                 }
             })
+            ++edgeCounter
+            console.log('++edgeCounter (placing edge) ' + edgeCounter)
+            --buyingCounter
+            console.log('--buyingCounter (buy filled) ' + buyingCounter)
         } else {
-            --buyNoSellCounter
+            --edgeCounter
+            console.log('--edgeCounter (sell edge filled) ' + edgeCounter)
+            console.log('buyingCounter ' + buyingCounter)
         }
     })
 }
@@ -256,13 +262,15 @@ const run = async () => {
 
         // Give some time if market is going down so we don't lock all the funds in future sells
         // time to wait is 15 sec * (2 ^ number of sells without buys)
-        if (buyNoSellCounter > 1) {
+        if (edgeCounter >= 1) {
             console.log('[INFO]: market seens to not be buying, giving more time to match sells')
-            let timeToWait = 15_000 * (Math.pow(2, buyNoSellCounter))
+            let timeToWait = 15_000 * (Math.pow(2, edgeCounter))
             console.log(`[INFO]: will wait for ${(timeToWait/60_000).toFixed()}min`)
             await cancelAllBuys()
+            buyingCounter = 0
+            console.log('buyingCounter ' + buyingCounter)
+            console.log('edgeCounter ' + edgeCounter)
             await delay(timeToWait)
-            --buyNoSellCounter
         }
 
         // Check if we are connected, if not try to reconnect
@@ -285,7 +293,8 @@ const run = async () => {
             configureConnection(connection, currentOB, mktsettings)
         }
 
-        if (buyNoSellCounter < 1) {
+        // If there is no current buying order, and no to much pending sells... we rebuy
+        if (buyingCounter === 0 && edgeCounter <= 2) {
             // Compute a leading price that is consistent with global markets, present here to devs our
             // endpoint with real-time global markets data =)
             let spread = await getassetprice()
@@ -311,7 +320,9 @@ const run = async () => {
             // Increment buy-no-sell counter so we can detect the market taking dives
             // this is a simple strategy to not keep buying as the market goes down
             // one can (maybe should?) get a lot more fancy - but this works 80/20
-            ++buyNoSellCounter
+            ++buyingCounter
+            console.log('++buyingCounter ' + buyingCounter)
+            console.log('edgeCounter ' + edgeCounter)
         }
 
         // Check if is price tip, if it is not cancel current buy
@@ -323,7 +334,9 @@ const run = async () => {
         if (isFinite(bidstip) && parseFloat(buyprice!) < bidstip) {
             console.log('[WARNING]: Not tip anymore, canceling current buy')
             await cancelAllBuys()
-            --buyNoSellCounter
+            buyingCounter = 0
+            console.log('buyingCounter ' + buyingCounter)
+            console.log('edgeCounter ' + edgeCounter)
         }
 
         // Give some time for market to fill order
