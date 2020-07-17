@@ -131,52 +131,65 @@ function edgeTrade(trades: Trade[], mkt: MarketSettings): void {
 
     trades.forEach(trade => {
         if (trade.direction === 'BUY') {
-            //!TODO add here the complex call for the logic that extimates the proper sell price
-            // this implementation just adds the market tick, making 1 tick profit.
-            const sellprice = (parseFloat(trade.limitPrice.amount) + mkt.tick).toFixed(mkt.pricedecimals)
-            console.log('[INFO]: placing-sell to edge buy made')
-            player.placeLimitOrder(
-                false,
-                trade.amount,
-                OrderBuyOrSell.SELL,
-                OrderCancellationPolicy.GOOD_TIL_CANCELLED,
-                createCurrencyPrice(
-                    sellprice,
-                    mkt.bUnit,
-                    mkt.aUnit
-                ),
-                MARKET
-            ).then((placedorder) => {
-                // Normally placing the order can fail because market moved and the sell would match
-                // making it a taker and losing money, but since allowTaker = false it fails.
-                // We will than place an order at buy price P + ticker + 0,25% (max taker fee) and let it
-                // be taker if needed, this will seat in the books.
-                if (placedorder.status == OrderStatus.CANCELLED) {
-                    player.placeLimitOrder(
-                        false,
-                        trade.amount,
-                        OrderBuyOrSell.SELL,
-                        OrderCancellationPolicy.GOOD_TIL_CANCELLED,
-                        createCurrencyPrice(
-                            (parseFloat(sellprice)*1.0025 + mkt.tick).toFixed(mkt.pricedecimals),
-                            mkt.bUnit,
-                            mkt.aUnit
-                        ),
-                        MARKET
-                    )
-                }
+        //!TODO add here the complex call for the logic that extimates the proper sell price
+        // this implementation just adds the market tick, making 1 tick profit.
+        const sellprice = (
+            parseFloat(trade.limitPrice.amount) + mkt.tick
+        ).toFixed(mkt.pricedecimals);
+        console.log('[INFO]: placing-sell to edge buy made');
+        player
+            .placeLimitOrder(
+            false,
+            trade.amount,
+            OrderBuyOrSell.SELL,
+            OrderCancellationPolicy.GOOD_TIL_CANCELLED,
+            createCurrencyPrice(sellprice, mkt.bUnit, mkt.aUnit),
+            MARKET
+            )
+            .then(placedorder => {
+            // Normally placing the order can fail because market moved and the sell would match
+            // making it a taker and losing money, but since allowTaker = false it fails.
+            // We will than place an order at buy price P + ticker + 0,25% (max taker fee) and let it
+            // be taker if needed, this will seat in the books.
+            if (placedorder.status == OrderStatus.CANCELLED) {
+                const sellPrice = (
+                parseFloat(sellprice) * 1.0025 +
+                mkt.tick
+                ).toFixed(mkt.pricedecimals);
+                player
+                .placeLimitOrder(
+                    false,
+                    trade.amount,
+                    OrderBuyOrSell.SELL,
+                    OrderCancellationPolicy.GOOD_TIL_CANCELLED,
+                    createCurrencyPrice(sellPrice, mkt.bUnit, mkt.aUnit),
+                    MARKET
+                )
+                .then(() => {
+                    ++edgeCounter;
+                    console.log(`++edgeCounter (placing edge) ${edgeCounter}`);
+                })
+                .catch(error => {
+                    console.log(error);
+                });
+            } else {
+                ++edgeCounter;
+                console.log(`++edgeCounter (placing edge) ${edgeCounter}`);
+            }
             })
-            ++edgeCounter
-            console.log('++edgeCounter (placing edge) ' + edgeCounter)
-            --buyingCounter
-            console.log('--buyingCounter (buy filled) ' + buyingCounter)
+            .catch(error => {
+            console.log(error);
+            });
+        // Buy order filled
+        --buyingCounter;
+        console.log(`--buyingCounter (buy filled) ${buyingCounter}`);
         } else {
-            --edgeCounter
-            console.log('--edgeCounter (sell edge filled) ' + edgeCounter)
-            console.log('buyingCounter ' + buyingCounter)
+        --edgeCounter;
+        console.log(`buyingCounter ${buyingCounter}`);
+        console.log(`--edgeCounter (sell edge filled) ${edgeCounter}`);
         }
-    })
-}
+    });
+};
 
 function computebuyprice(spread: Spread, ob: BotOrderBook, mkt: MarketSettings) {
     let bidstip = -Infinity
@@ -293,8 +306,8 @@ const run = async () => {
             configureConnection(connection, currentOB, mktsettings)
         }
 
-        // If there is no current buying order, and no to much pending sells... we rebuy
-        if (buyingCounter === 0 && edgeCounter <= 2) {
+        // If there is no current buying order, and not too much pending sells... we rebuy
+        if (buyingCounter === 0 && edgeCounter <= 1) {
             // Compute a leading price that is consistent with global markets, present here to devs our
             // endpoint with real-time global markets data =)
             let spread = await getassetprice()
@@ -305,22 +318,28 @@ const run = async () => {
             let buysize = random(config.sizelowerlimit, config.sizeupperlimit).toFixed(mktsettings.sizedecimals)
 
             console.log('[INFO]: placing buy order at price: ', buyprice)
-            const placedorder = await player.placeLimitOrder(
-                false,
-                createCurrencyAmount(buysize, mkt.aUnit),
-                OrderBuyOrSell.BUY,
-                OrderCancellationPolicy.GOOD_TIL_CANCELLED,
-                createCurrencyPrice(
-                    buyprice,
-                    mkt.bUnit,
-                    mkt.aUnit
-                ),
-                MARKET
-            )
+            try {
+                const placedorder = await player.placeLimitOrder(
+                    false,
+                    createCurrencyAmount(buysize, mkt.aUnit),
+                    OrderBuyOrSell.BUY,
+                    OrderCancellationPolicy.GOOD_TIL_CANCELLED,
+                    createCurrencyPrice(buyprice, mkt.bUnit, mkt.aUnit),
+                    MARKET
+                )
+                .then((placedorder: { status: OrderStatus }) => {
+                    if (placedorder.status !== OrderStatus.CANCELLED) {
+                        ++buyingCounter;
+                        console.log(`++buyingCounter ${buyingCounter}`);
+                    }
+                });
+            } catch (e) {
+                console.log(e);
+                return;
+            }
             // Increment buy-no-sell counter so we can detect the market taking dives
             // this is a simple strategy to not keep buying as the market goes down
             // one can (maybe should?) get a lot more fancy - but this works 80/20
-            ++buyingCounter
             console.log('++buyingCounter ' + buyingCounter)
             console.log('edgeCounter ' + edgeCounter)
         }
