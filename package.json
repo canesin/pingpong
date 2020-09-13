@@ -7,6 +7,6 @@
   "license": "MIT",
   "dependencies": {
     "@neon-exchange/api-client-typescript": "^5.0.35",
-    "node-fetch": "^2.6.0"
+    "node-fetch": "^2.6.1"
   }
 }
